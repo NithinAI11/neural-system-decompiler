@@ -1,0 +1,35 @@
+# Environments & Secrets
+.env
+.env.local
+secrets.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+env/
+.pytest_cache/
+
+# Node & Frontend
+node_modules/
+dist/
+build/
+.npm/
+
+# NSD Database & Storage Volumes
+data/raw_repos/
+data/mongo_storage/
+data/qdrant_storage/
+qdrant_storage/
+
+# IDEs & OS Files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Excluded User Scripts
+snapshot.py
+test.py
+python-nsd-ui-apply.py
