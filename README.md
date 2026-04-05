@@ -1,6 +1,6 @@
-# 🧠 Neural System Decompiler (NSD)
-
 <div align="center">
+
+# 🧠 Neural System Decompiler (NSD)
 
 **An Autonomous Codebase Intelligence Engine — Where Math Comes Before AI.**
 
@@ -12,11 +12,21 @@
 [![Qdrant](https://img.shields.io/badge/Vector_DB-Qdrant-dc244c?style=for-the-badge)](https://qdrant.tech/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](https://opensource.org/licenses/MIT)
 
-<br/>
+</div>
 
-> _"Traditional AI coding assistants hallucinate architecture. NSD computes it."_
+---
 
-<br/>
+## ⚠️ Honest Disclaimer — Read This First
+
+> **This is not a production system. This is a personal research project.**
+>
+> NSD was built to explore one question: *"How much can we understand about a software system using pure math and graph theory, before involving an LLM at all?"*
+>
+> It sits alongside my other research experiments on reducing unnecessary LLM usage in AI pipelines. The goal isn't to ship a product — it's to push on a real engineering problem and see how far deterministic methods alone can get us. If you're here as a researcher, architect, or fellow curious builder: welcome. If you're expecting a polished SaaS tool: this isn't that yet.
+
+---
+
+<div align="center">
 
 ![NSD Demo Banner](https://raw.githubusercontent.com/NithinAI11/Neural-System-Decompiler/main/assets/banner.png)
 
@@ -26,145 +36,198 @@
 
 ## 🎬 Demo
 
-> **Watch NSD analyze a real 554-file microservices codebase in under 60 seconds.**
-
 <div align="center">
 
-[![NSD Demo Video](https://img.shields.io/badge/▶_Watch_Demo-YouTube-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](https://www.youtube.com/watch?v=4sRM-zVoXjY)
+> Click the thumbnail below to watch the demo on YouTube.
+
+[![Watch NSD in action](https://img.youtube.com/vi/4sRM-zVoXjY/maxresdefault.jpg)](https://www.youtube.com/watch?v=4sRM-zVoXjY)
+
+*NSD scanning a real open-source codebase — 3D graph rendering, phantom code detection, and the agentic console in action. The engine is capable of handling thousands of files; the demo shows a focused subset to walk through each feature clearly.*
 
 </div>
 
 ---
 
-## ⚡ The Problem This Solves
+## 🧠 What Is This, Actually?
 
-Every existing "AI code tool" shares the same fatal flaw: they **pass raw code text to an LLM and hope it doesn't hallucinate the architecture**.
+Let me explain it with an analogy before the technical stuff.
 
-This fails at scale. A 500-file repo will hit token limits, cross-language boundaries are invisible to pure LLMs, and there is no mathematical ground truth — just probabilistic text generation.
+**Imagine you just joined a company with a massive codebase — thousands of files, written by dozens of people over years. Your manager says: "Understand the whole system by Monday."**
 
-**NSD flips the pipeline:**
+You could do it the slow way: open every file, read every function, manually trace every dependency. That takes weeks.
+
+Or you could do what NSD does:
+
+1. **Build a map of the city.** Every file is a building. Every import is a road connecting buildings. NSD automatically constructs this entire city map as a mathematical graph.
+2. **Find the dangerous intersections.** Using graph mathematics (Eigenvector Centrality), it identifies which "buildings" are the most critical — the ones where, if something breaks, the whole city grinds to a halt. No guessing. Pure math.
+3. **Find the abandoned buildings.** Files that exist but nobody ever visits (no incoming connections) are flagged as Dead Code / Phantom Files. You don't need AI to find them — just count the roads going in.
+4. **Identify the neighbourhoods.** Clustering algorithms group tightly connected files into logical components — "this cluster is the Auth system", "this cluster is the Payment layer".
+5. **Only then, ask an expert to explain it.** Once the map is complete and mathematically verified, NSD feeds this structured, proven data to an LLM. The LLM explains the architecture in plain English. It never has to guess the structure — because we already computed it.
+
+**That's the core idea: Math first, AI second.**
+
+---
+
+## ⚡ The Problem With Existing AI Code Tools
+
+Every current "AI coding assistant" shares the same pipeline:
 
 ```
-Raw Codebase
-    │
-    ▼
-Deterministic AST Parsing        ← zero AI, 100% accurate
-    │
-    ▼
-NetworkX DAG + Graph Algorithms  ← eigenvector centrality, cycle detection, clustering
-    │
-    ▼
-Vector RAG Embeddings (Qdrant)   ← local, zero cost, zero hallucination
-    │
-    ▼
-LLM receives computed TRUTH      ← Groq explains math, never guesses it
-    │
-    ▼
-Multi-Dimensional WebGL UI       ← 4 topology modes, live agent console
+Raw code text → LLM → Hope it doesn't hallucinate
 ```
 
-The AI **never guesses the structure. It only explains the math.**
+This breaks badly at scale:
+- A 500-file repo will hit token limits immediately
+- Cross-language boundaries (React frontend calling Python backend) are invisible to pure LLMs  
+- The AI has no ground truth — it guesses relationships from text patterns
+- Every re-run costs tokens and may give a different (wrong) answer
+
+**NSD's pipeline is fundamentally different:**
+
+```
+Raw code
+   │
+   ▼  [No AI here]
+Deterministic AST Parser — reads code like a compiler, 100% accurate
+   │
+   ▼  [No AI here]
+Mathematical Graph (NetworkX DAG) — every file, every dependency, proven
+   │
+   ▼  [No AI here]
+Graph Algorithms — centrality, cycle detection, clustering, dead node scan
+   │
+   ▼  [Now AI comes in]
+LLM receives structured, verified data → explains it in plain English
+   │
+   ▼
+WebGL 3D Visualisation — see your codebase as a living neural network
+```
+
+The LLM **never guesses the structure. It only narrates computed truth.**
 
 ---
 
 ## ✨ Core Features
 
-### 🌐 Polyglot API Linker — Full-Stack Cross-Language Mapping
-The headline novelty. Modern systems are decoupled: React/TypeScript frontends call FastAPI/Python backends across a network boundary that traditional SAST tools cannot cross.
+### 🌐 Polyglot API Linker — Cross-Language Mapping
+The headline research contribution. Modern systems are split: a TypeScript/React frontend calls a Python/FastAPI backend across a network boundary. Standard analysis tools see these as two separate codebases and miss the connection entirely.
 
-NSD's `UniversalASTExtractor` maintains an internal registry of backend endpoints (`@app.get('/api/v1/user')`) and simultaneously scans frontend JS/TS for network fetches (`axios.get('/api/v1/user')`). When a match is found, a mathematical `api_route` edge is created in the DAG. In the UI, this renders as a glowing purple laser connecting a TypeScript cube to a Python sphere — **true full-stack topological mapping**.
+NSD solves this by maintaining an internal registry of backend routes (e.g. `@app.get('/api/v1/user')` in Python) and simultaneously scanning frontend code for matching network calls (e.g. `axios.get('/api/v1/user')` in TypeScript). When a match is found, a mathematical `api_route` edge is added to the graph — a genuine, proven cross-language dependency link.
 
----
-
-### ⚡ Eigenvector Centrality — God Object Detection
-NSD does not ask the AI to guess your bottlenecks. It runs **`nx.eigenvector_centrality()`** across the entire graph.
-
-Unlike simple degree centrality (which just counts how many files import a file), eigenvector centrality calculates **recursive influence** — a file scores high only if it is relied upon by other highly relied-upon files. The top 5 nodes by this score are mathematically identified as the highest single points of failure. No prompt engineering. No guessing.
+In the 3D UI, this renders as a glowing edge connecting a TypeScript cube to a Python sphere. You can literally *see* your full-stack dependency chain.
 
 ---
 
-### 👻 Phantom Code Audit — Automated Tech Debt Detection
-The engine runs a directed edge `in_degree == 0` scan across all nodes. Any file with no incoming edges and no `api_route` connections and no `main`/`index` naming convention is flagged as **ORPHANED / DEAD CODE**. In one real-world test run, this found **455 phantom files** in a 554-file codebase.
+### ⚡ Eigenvector Centrality — God Object / Bottleneck Detection
+There's a concept in mathematics called Eigenvector Centrality. It's the same algorithm that powers Google's original PageRank.
+
+Applied to a codebase: a file gets a high centrality score not just if many other files depend on it, but if the files that depend on it are *also heavily depended upon*. It measures **recursive influence across the entire system**.
+
+NSD runs `nx.eigenvector_centrality()` on every node in the graph and identifies the top bottlenecks — files where a single bug could cascade through the entire architecture. No AI opinion. Just math.
+
+---
+
+### 👻 Phantom Code Audit — Dead Code via Graph Theory
+When a file has no incoming edges in the dependency graph (in_degree == 0), it means nothing in the entire codebase imports or calls it. It exists, but it's functionally invisible.
+
+NSD applies a safety check: it exempts files that are backend entry points (API routes triggered from the frontend), and files named `main` or `index`. Everything else with zero incoming edges is flagged as **Phantom / Dead Code**.
+
+In one test run on a real open-source repo, this method found hundreds of orphaned files — tech debt that had quietly accumulated over years.
 
 ---
 
 ### 🔍 Vector RAG — Local Semantic Search
-Every ingested file's first 2,000 characters (capturing docstrings, imports, and class signatures) is embedded locally using **`fastembed`** with the `BAAI/bge-small-en-v1.5` model into a **Qdrant** vector database. Cosine similarity search lets you ask questions like *"Where is the password hashing logic?"* with zero API cost and zero data leaving your machine.
+The graph tells you *how* files are connected. But it doesn't tell you *what* the code is doing logically.
+
+NSD embeds the first 2,000 characters of every file (imports, class signatures, docstrings) into a local **Qdrant** vector database using the `BAAI/bge-small-en-v1.5` model (384-dimensional embeddings). This runs entirely on your machine — zero cost, zero data sent anywhere.
+
+You can then ask semantic questions: *"Where is the authentication logic?"* or *"Which file handles payment processing?"* — and get mathematically similar code back via cosine similarity search.
 
 ---
 
-### 🤖 ReAct Agentic Console — Three-Tool Autonomous Agent
-The chat interface runs a **Reasoning + Acting loop** powered by Groq (Llama-3). The LLM is given three tools and autonomously decides which to invoke:
+### 🤖 ReAct Agentic Console — Autonomous Three-Tool Agent
+The chat panel isn't a chatbot — it's an agent with three callable tools:
 
-| Tool | Trigger | What It Does |
-|------|---------|------|
-| `get_impact(filename)` | "What breaks if I modify X?" | Runs `nx.ancestors()` reverse graph traversal |
-| `semantic_search(query)` | "Where is the auth logic?" | Cosine similarity search in Qdrant |
-| `web_search(query)` | "How does FastAPI middleware work?" | Tavily API web scrape |
+| Tool | What Triggers It | What It Does |
+|------|-----------------|--------------|
+| `get_impact(file)` | "What breaks if I modify X?" | Runs `nx.ancestors()` reverse graph traversal — mathematically maps every file that will be affected |
+| `semantic_search(query)` | "Where is the X logic?" | Cosine similarity search in Qdrant vector DB |
+| `web_search(query)` | "How does library X work?" | Tavily API call for external documentation |
 
-Results from graph traversals are returned as `highlight_nodes` arrays — the UI immediately ignites the affected nodes in the 3D space.
+The LLM decides which tool to invoke, gets the result, and synthesises a response. Files returned by `get_impact()` are sent back as a `highlight_nodes` array — the 3D graph immediately lights those nodes up in purple, showing you the blast radius visually.
 
 ---
 
 ### 🌌 Multi-Dimensional Topology Engine
-Four distinct mathematical representations of the same graph:
 
-| Mode | Math | Use Case |
-|------|------|----------|
-| **3D Neural Cloud** | Force-directed physics simulation | General exploration, feels like a neural network |
-| **4D Execution Flow** | Top-down DAG, `rootIds` cascading | Trace execution from entry points downward |
-| **8D Radial Core** | Radial outward DAG | Identify core modules vs peripheral dependencies |
-| **2D Flowchart** | Orthogonal flat layout | Simple, documentation-ready architecture map |
+Four ways to look at the same mathematical graph:
+
+| Mode | What It Shows |
+|------|---------------|
+| **3D Neural Cloud** | Physics-based force simulation — files pull each other based on dependency strength. Heavily connected clusters clump together naturally. |
+| **4D Execution Flow** | Top-down directed DAG — shows the logical execution cascade from entry points downward, like tracing a call stack at system scale. |
+| **8D Radial Core** | Entry-point files at the centre, dependencies fanning outward in orbital rings. Useful for seeing which modules are "core" vs "peripheral". |
+| **2D Flowchart** | Flat orthogonal layout. Easier to read for documentation or screenshots. |
 
 ---
 
-### 🎨 v2.0 Cyberpunk UI
-- True black (#000) background with **6 swappable neon accent colours** (Cyan, Violet, Emerald, Rose, Amber, Indigo), persisted to `localStorage`
-- Full Light/Dark mode via `data-theme` attribute — no flicker, no MUI theming hacks
-- **9 distinct 3D node geometries** per file type: Python → Sphere, JS → Octahedron, TypeScript → Cube, Go → Tetrahedron, HTML → Cone, CSS → Torus, JSON/YAML → Icosahedron, Markdown → Dodecahedron, Dead code → Wireframe
-- Bottleneck nodes get a pulsing orbital ring. Dead code is visually hollow.
-- SpriteText labels float above every node, scaling dynamically with camera zoom
+### 🎨 v2.0 UI — Cyberpunk Meets IDE
+
+- **True black (#000) background** — not dark grey, actual black, like a proper terminal
+- **9 distinct 3D node shapes per file type** — Python → Sphere, JS → Octahedron, TypeScript → Cube, Go → Tetrahedron, HTML → Cone, CSS → Torus, JSON/YAML → Icosahedron, Markdown → Dodecahedron, Dead code → hollow wireframe
+- **Bottleneck nodes** get a pulsing orbital ring. You can see danger at a glance.
+- **6 swappable accent colours** (Cyan, Violet, Emerald, Rose, Amber, Indigo) — saved to localStorage
+- **Full light/dark mode** via `data-theme` on the HTML element — no flicker, no hacks
+- **SpriteText labels** float above every node, scaling dynamically with camera zoom
+- **Click any node** → IDE panel slides up from the bottom showing raw source code in JetBrains Mono
 
 ---
 
 ## 🏗️ System Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                        INGESTION LAYER                          │
-│  GitFetcher (shallow clone) │ LocalFSAdapter │ POSIX normalizer │
-└─────────────────┬───────────────────────────────────────────────┘
-                  │
-┌─────────────────▼───────────────────────────────────────────────┐
-│                        PARSING LAYER                            │
-│  tree-sitter-python (AST) │ Regex heuristics (JS/TS/Go)        │
-│  UniversalASTExtractor → FileAST models │ API endpoint registry │
-└─────────────────┬───────────────────────────────────────────────┘
-                  │
-┌─────────────────▼───────────────────────────────────────────────┐
-│                      GRAPH MATH LAYER                           │
-│  NetworkX DiGraph │ Eigenvector Centrality │ nx.simple_cycles() │
-│  greedy_modularity_communities() │ in_degree Phantom Detection  │
-│  System Health Score (100 - 5×bottlenecks - 15×cycles)         │
-└────────┬──────────────────────────────────────┬─────────────────┘
-         │                                      │
-┌────────▼────────────┐              ┌──────────▼──────────────────┐
-│   VECTOR RAG LAYER  │              │    SEMANTIC FUSION LAYER     │
-│  fastembed BAAI     │              │  Top-5 bottlenecks → Groq   │
-│  384-dim vectors    │              │  ModuleClassifier JSON       │
-│  Qdrant upsert      │              │  Executive Report Markdown   │
-└────────┬────────────┘              └──────────┬──────────────────┘
-         │                                      │
-┌────────▼──────────────────────────────────────▼─────────────────┐
-│                    HYBRID QUERY ROUTER (ReAct)                   │
-│  get_impact() │ semantic_search() │ web_search() │ highlight_nodes│
-└─────────────────────────────────────────────────────────────────┘
-                  │
-┌─────────────────▼───────────────────────────────────────────────┐
-│                     v2.0 FRONTEND (React + WebGL)               │
-│  Dashboard │ Topology Graph │ Phantom Audit │ Configuration     │
-│  react-force-graph-3d/2d │ Three.js geometries │ SpriteText     │
-└─────────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────┐
+│                         INGESTION LAYER                            │
+│   GitFetcher (shallow clone) │ LocalFSAdapter │ POSIX normalizer  │
+│   Ignores: node_modules, venv, .git                               │
+└───────────────────────────────┬────────────────────────────────────┘
+                                │
+┌───────────────────────────────▼────────────────────────────────────┐
+│                          PARSING LAYER                             │
+│   tree-sitter-python → AST (classes, functions, calls)            │
+│   Regex heuristics → JS / TS / Go imports & fetch patterns        │
+│   UniversalASTExtractor → FileAST models + API endpoint registry  │
+└──────────────┬─────────────────────────────────────────────────────┘
+               │
+┌──────────────▼─────────────────────────────────────────────────────┐
+│                        GRAPH MATH LAYER                            │
+│   NetworkX DiGraph │ Fuzzy suffix import matching                  │
+│   Eigenvector Centrality (max_iter=500) → bottleneck detection     │
+│   nx.simple_cycles() → circular dependency detection               │
+│   greedy_modularity_communities() → logical cluster grouping       │
+│   in_degree == 0 scan → phantom / dead code detection             │
+│   System Health Score: 100 - (5 × bottlenecks) - (15 × cycles)   │
+└──────────┬──────────────────────────────────┬──────────────────────┘
+           │                                  │
+┌──────────▼────────────────┐    ┌────────────▼──────────────────────┐
+│      VECTOR RAG LAYER     │    │       SEMANTIC FUSION LAYER       │
+│  fastembed BAAI/bge-small │    │  Top-5 bottlenecks → Groq LLM    │
+│  384-dim local embeddings │    │  JSON role classification         │
+│  Qdrant vector upsert     │    │  Executive Report Markdown        │
+└──────────┬────────────────┘    └────────────┬──────────────────────┘
+           └──────────────┬──────────────────-┘
+                          │
+┌─────────────────────────▼──────────────────────────────────────────┐
+│                   HYBRID QUERY ROUTER (ReAct Agent)                │
+│   get_impact() │ semantic_search() │ web_search()                  │
+│   highlight_nodes[] → returned to frontend                         │
+└─────────────────────────┬──────────────────────────────────────────┘
+                          │
+┌─────────────────────────▼──────────────────────────────────────────┐
+│                    v2.0 FRONTEND (React + WebGL)                   │
+│   Dashboard │ Topology Graph │ Phantom Audit │ Configuration       │
+│   react-force-graph-3d/2d │ Three.js geometries │ SpriteText      │
+└────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -172,10 +235,10 @@ Four distinct mathematical representations of the same graph:
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Docker & Docker Compose (for MongoDB + Qdrant)
+- Docker & Docker Compose — for MongoDB (state caching) and Qdrant (vector search)
 - Python 3.10+
 - Node.js 18+
-- API keys: [Groq](https://console.groq.com/) · [Tavily](https://tavily.com/)
+- API keys from [Groq](https://console.groq.com/) and [Tavily](https://tavily.com/)
 
 ### 1. Clone
 ```bash
@@ -186,7 +249,6 @@ cd Neural-System-Decompiler
 ### 2. Start Databases
 ```bash
 docker-compose up -d
-# Starts MongoDB (state caching) + Qdrant (vector search)
 ```
 
 ### 3. Backend
@@ -199,13 +261,13 @@ pip install -r requirements.txt
 
 Create `.env` in the project root:
 ```env
-GROQ_API_KEY=your_key_here
-TAVILY_API_KEY=your_key_here
+GROQ_API_KEY=your_groq_key_here
+TAVILY_API_KEY=your_tavily_key_here
 ```
 
 ```bash
 uvicorn src.api.server:app --reload
-# Backend available at http://localhost:8000
+# API running at http://localhost:8000
 ```
 
 ### 4. Frontend
@@ -213,78 +275,46 @@ uvicorn src.api.server:app --reload
 cd nsd-frontend
 npm install
 npm run dev
-# UI available at http://localhost:5173
+# UI at http://localhost:5173
 ```
 
 ---
 
-## 💻 Usage
+## 💻 Usage Guide
 
 ### Scanning a Codebase
-Paste any GitHub URL or local absolute path into the sidebar and click **Decompile System**. The pipeline log streams in real time. Toggle **Force Re-Analysis** to bypass the MongoDB cache on repos you've already scanned.
+Paste a GitHub URL (e.g. `https://github.com/encode/starlette`) or a local absolute path into the sidebar. Click **Decompile System**. The pipeline log streams each stage in real time.
+
+Toggle **Force Re-Analysis** if you want to bypass the MongoDB cache and reprocess from scratch (useful when the repo has been updated).
 
 ### Reading the Dashboard
-- **Macro Pattern** — autonomously identified architecture style (Microservices, Monolith, Layered, Event-Driven)
-- **Micro Clusters** — number of logical component groups found by the modularity algorithm
-- **Bottlenecks** — eigenvector high-risk nodes (god objects)
-- **Phantom Code** — unreferenced files with `in_degree == 0`
-- **Tech Stack** — derived live from file extension distribution across graph nodes
+| Card | What It Means |
+|------|--------------|
+| **Macro Pattern** | Auto-detected architecture style — Microservices, Monolith, Layered, Event-Driven |
+| **Micro Clusters** | Number of logical component groups found by the modularity algorithm |
+| **Bottlenecks** | Files with highest eigenvector centrality — your highest-risk single points of failure |
+| **Phantom Code** | Files with `in_degree == 0` — present in repo but never imported by anything |
 
-### Navigating the Graph
+### Navigating the 3D Graph
 | Action | Control |
 |--------|---------|
 | Orbit  | Left-click drag |
 | Zoom   | Scroll wheel |
 | Pan    | Right-click drag |
-| Inspect node | Click any geometry |
+| Inspect a file | Click any 3D node |
 | Switch layout | Top controls bar |
 
-### Agent Console Queries to Try
+### Agent Console — Queries to Try
 ```
 "What downstream files break if I modify auth_service.py?"
-→ Triggers nx.ancestors() graph traversal, lights up affected nodes
+→ Triggers nx.ancestors() reverse traversal → affected nodes light up in 3D
 
 "Where is the code that handles database connections?"
 → Triggers Qdrant cosine similarity search
 
-"Search the web for how FastAPI middleware works in this project."
-→ Triggers Tavily web search + synthesis
+"Search the web for how FastAPI middleware works and relate it to this project."
+→ Triggers Tavily API web search + synthesis
 ```
-
----
-
-## 🧪 Real-World Test Run
-
-Scanning [encode/starlette](https://github.com/encode/starlette) (a production Python web framework):
-
-| Metric | Result |
-|--------|--------|
-| Total files ingested | 554 |
-| Macro architecture detected | Microservices |
-| Phantom / orphaned files | 455 |
-| Critical bottleneck nodes | 3 (openai.js, mime.js, ollama.js) |
-| Micro clusters (logical components) | 43 |
-| Compile time | ~45 seconds |
-
----
-
-## 🗺️ Roadmap
-
-- [x] Deterministic AST parsing (Python `tree-sitter`, JS/TS regex)
-- [x] NetworkX DAG + eigenvector centrality
-- [x] Phantom code detection (in_degree scan)
-- [x] Modularity clustering
-- [x] Qdrant vector RAG (local embeddings)
-- [x] Groq ReAct agent with tool-calling
-- [x] 3D/4D/8D/2D topology renderer
-- [x] Polyglot API edge linker
-- [x] Phantom Audit page + system health score
-- [x] Cyberpunk v2.0 UI with accent colour system
-- [ ] **Temporal Diff** — compare graph centrality across Git commits to track architecture degradation
-- [ ] **Change Impact Predictor** — visualise blast radius directly in the 3D graph
-- [ ] **Anomaly Detector** — ML clustering on centrality distributions to flag structural anomalies
-- [ ] **Automated Refactoring** — agent-generated PRs to untangle circular dependencies
-- [ ] **Cross-Repo Pattern Mining** — compare architectural patterns across multiple repos
 
 ---
 
@@ -293,11 +323,11 @@ Scanning [encode/starlette](https://github.com/encode/starlette) (a production P
 | Layer | Technology |
 |-------|-----------|
 | Backend API | FastAPI, Python 3.10+ |
-| Graph Engine | NetworkX (DiGraph, centrality, cycles, communities) |
-| AST Parsing | tree-sitter-python, regex heuristics |
+| Graph Engine | NetworkX (DiGraph, eigenvector centrality, cycles, communities) |
+| AST Parsing | tree-sitter-python, regex heuristics for JS/TS/Go |
 | LLM | Groq (Llama-3.1-8b-instant) |
-| Agentic Framework | Native JSON tool-calling (no LangChain bloat) |
-| Vector DB | Qdrant (local) |
+| Agent Framework | Native JSON tool-calling — no LangChain |
+| Vector DB | Qdrant (runs locally) |
 | Embeddings | fastembed, BAAI/bge-small-en-v1.5 (384-dim) |
 | State Cache | MongoDB |
 | Web Search | Tavily API |
@@ -308,9 +338,31 @@ Scanning [encode/starlette](https://github.com/encode/starlette) (a production P
 
 ---
 
+## 🗺️ Roadmap
+
+- [x] Deterministic AST parsing (Python tree-sitter + JS/TS/Go regex)
+- [x] NetworkX DAG + eigenvector centrality
+- [x] Phantom code detection (in_degree scan)
+- [x] Modularity clustering
+- [x] Qdrant vector RAG with local embeddings
+- [x] Groq ReAct agent with native tool-calling
+- [x] 3D / 4D / 8D / 2D topology renderer
+- [x] Polyglot API edge linker (cross-language mapping)
+- [x] Phantom Audit dedicated page + system health score
+- [x] Cyberpunk v2.0 UI with accent colour system + light/dark mode
+- [ ] Temporal Diff — compare graph centrality across Git commits over time
+- [ ] Change Impact Predictor — visualise blast radius directly in the 3D graph
+- [ ] Anomaly Detector — ML clustering on centrality distributions
+- [ ] Automated Refactoring — agent-generated PRs to untangle circular dependencies
+- [ ] Cross-Repo Pattern Mining — compare architectural patterns across multiple repos
+
+---
+
 ## 👤 Author
 
-**Nithin** · AI/LLM Engineer 
+**Nithin** · AI/LLM Engineer · Chennai, India
+
+Building research tools at the intersection of graph theory, static analysis, and agentic AI — specifically exploring how much we can compute *before* involving a language model.
 
 [![GitHub](https://img.shields.io/badge/GitHub-NithinAI11-181717?style=for-the-badge&logo=github)](https://github.com/NithinAI11)
 
@@ -324,6 +376,6 @@ MIT — see [LICENSE](LICENSE) for details.
 
 <div align="center">
 
-_Built because existing tools were not good enough._
+*Built to explore a question, not to ship a product — for now.*
 
 </div>
