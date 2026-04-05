@@ -30,15 +30,7 @@
 
 <div align="center">
 
-[![NSD Demo Video](https://img.shields.io/badge/▶_Watch_Demo-YouTube-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](https://youtube.com/your-demo-link)
-
-<!-- Replace the link above with your actual YouTube/Loom demo URL -->
-<!-- Recommended: record a 60–90 second screen capture of:          -->
-<!--   1. Pasting a GitHub URL into the sidebar                     -->
-<!--   2. The agentic pipeline log running                          -->
-<!--   3. The 3D graph loading with coloured node shapes            -->
-<!--   4. Clicking a bottleneck node → IDE panel sliding up         -->
-<!--   5. Asking "What breaks if I modify X?" in the agent console  -->
+[![NSD Demo Video](https://img.shields.io/badge/▶_Watch_Demo-YouTube-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](https://www.youtube.com/watch?v=4sRM-zVoXjY)
 
 </div>
 
