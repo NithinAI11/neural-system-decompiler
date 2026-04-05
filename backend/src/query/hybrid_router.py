@@ -42,15 +42,27 @@ class HybridQueryRouter:
             return f"Web search failed: {str(e)}"
 
     def route_query(self, question: str) -> dict:
-        """The Autonomous Agent Loop (Think -> Act -> Observe -> Answer)"""
+        """The STRICT Autonomous Agent Loop"""
         
-        # Define Tools for the LLM
-        tools =[
+        # Capture the current system intelligence to feed the agent
+        # This tells the agent about the 455 dead files and bottlenecks BEFORE it thinks.
+        from src.api.server import fused_intelligence_cache
+        intel_summary = ""
+        if fused_intelligence_cache:
+            intel = fused_intelligence_cache.get('intelligence', {})
+            intel_summary = f"""
+            CURRENT SYSTEM TRUTH (MATH COMPUTED):
+            - Macro Pattern: {intel.get('macro_architecture', {}).get('pattern')}
+            - Dead/Phantom Files: {intel.get('dead_code', [])[:10]} (Total: {len(intel.get('dead_code', []))})
+            - Bottlenecks: {[b[0] for b in intel.get('bottlenecks', [])]}
+            """
+
+        tools = [
             {
                 "type": "function",
                 "function": {
                     "name": "get_impact",
-                    "description": "Calculates downstream dependencies and risk of modifying or deleting a file.",
+                    "description": "REQUIRED for 'what breaks' questions. Returns mathematical blast radius.",
                     "parameters": {"type": "object", "properties": {"filename": {"type": "string"}}, "required": ["filename"]}
                 }
             },
@@ -58,22 +70,25 @@ class HybridQueryRouter:
                 "type": "function",
                 "function": {
                     "name": "semantic_search",
-                    "description": "Searches the project codebase to find where specific business logic is implemented.",
-                    "parameters": {"type": "object", "properties": {"query": {"type": "string"}}, "required": ["query"]}
-                }
-            },
-            {
-                "type": "function",
-                "function": {
-                    "name": "web_search",
-                    "description": "Searches the internet for documentation about external libraries, frameworks, or errors not found in the codebase.",
+                    "description": "REQUIRED for 'where is logic' questions. Uses Vector RAG.",
                     "parameters": {"type": "object", "properties": {"query": {"type": "string"}}, "required": ["query"]}
                 }
             }
         ]
 
-        messages =[
-            {"role": "system", "content": "You are an elite, autonomous System Architect. You have tools to calculate math graphs, search vectors, and browse the web. Use them to answer the user's question accurately. Format your final answer beautifully in Markdown."},
+        messages = [
+            {
+                "role": "system", 
+                "content": f"""You are the NSD Senior Architect Engine. 
+                {intel_summary}
+                
+                RULES:
+                1. NEVER tell the user to 'run a command' or 'install a library'.
+                2. If the user asks for dead files, use the 'DEAD/PHANTOM FILES' list provided above.
+                3. If the user asks 'what breaks', you MUST call 'get_impact'.
+                4. If the user asks 'where is logic', you MUST call 'semantic_search'.
+                5. Be brief, technical, and decisive. No conversational fluff."""
+            },
             {"role": "user", "content": question}
         ]
 
