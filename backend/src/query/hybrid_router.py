@@ -1,6 +1,7 @@
 # ===== File: backend/src/query/hybrid_router.py =====
 from src.query.traverser import GraphTraverser
 from src.semantic.rag_manager import VectorRAGManager
+from src.semantic.groq_client import ResilientGroqEngine
 from tavily import TavilyClient
 import os
 import json
@@ -8,33 +9,54 @@ import networkx as nx
 from groq import Groq
 
 class HybridQueryRouter:
-    """Agentic LangGraph-style Router using Native Groq Tool Calling."""
+    """
+    Advanced Agentic Router v2.1.
+    Features: Hallucination protection, Tool-state injection, and ReAct loops.
+    """
     
     def __init__(self, current_graph: nx.DiGraph):
         self.traverser = GraphTraverser(current_graph)
         self.groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
         self.tavily = TavilyClient(api_key=os.getenv("TAVILY_API_KEY"))
         
+        # Load the RAG manager if available
         self.rag_enabled = False
         try:
             self.rag = VectorRAGManager()
             self.rag_enabled = True
         except Exception:
-            print("⚠️[WARNING] Qdrant offline. RAG disabled.")
+            print("⚠️ [WARNING] Qdrant offline. RAG search disabled.")
+
+    def _tool_get_system_intelligence(self) -> str:
+        """Tool: Retrieves the high-level math insights (Dead Code, Bottlenecks, etc.)"""
+        # Import inside to avoid circular dependencies
+        from src.api.server import fused_intelligence_cache
+        if not fused_intelligence_cache:
+            return "No system intelligence available. The system has not been compiled."
+        
+        intel = fused_intelligence_cache.get('intelligence', {})
+        # We strip the data to essential facts for the LLM context
+        summary = {
+            "macro_architecture": intel.get("macro_architecture", {}).get("pattern", "Unknown"),
+            "dead_files_count": len(intel.get("dead_code", [])),
+            "dead_files_sample": intel.get("dead_code", [])[:15],
+            "top_bottlenecks": [b[0] for b in intel.get("bottlenecks", [])]
+        }
+        return json.dumps(summary)
 
     def _tool_get_impact(self, filename: str) -> str:
-        """Tool: Calculates the blast radius of modifying a file."""
+        """Tool: Calculates the mathematical blast radius of modifying a specific file."""
         data = self.traverser.get_change_impact(filename)
         return json.dumps(data) if "error" not in data else data["error"]
 
     def _tool_semantic_search(self, query: str) -> str:
-        """Tool: Finds logic in the codebase using Vector embeddings."""
-        if not self.rag_enabled: return "RAG Vector DB is offline."
-        files = self.rag.search(query, limit=4)
-        return f"Logic found in files: {files}"
+        """Tool: Searches the codebase for specific business logic using Vector RAG."""
+        if not self.rag_enabled: return "Semantic Vector Search is currently unavailable."
+        relevant_files = self.rag.search(query, limit=5)
+        return f"Logic potentially found in these files: {relevant_files}"
 
     def _tool_web_search(self, query: str) -> str:
-        """Tool: Searches the internet for external documentation or libraries."""
+        """Tool: Searches the internet for external documentation (Tavily)."""
         try:
             res = self.tavily.search(query=query, search_depth="basic")
             return "\n".join([r['content'] for r in res['results']])
@@ -42,36 +64,51 @@ class HybridQueryRouter:
             return f"Web search failed: {str(e)}"
 
     def route_query(self, question: str) -> dict:
-        """The STRICT Autonomous Agent Loop"""
+        """The Autonomous Agent Loop with Strict Tool Validation."""
         
-        # Capture the current system intelligence to feed the agent
-        # This tells the agent about the 455 dead files and bottlenecks BEFORE it thinks.
-        from src.api.server import fused_intelligence_cache
-        intel_summary = ""
-        if fused_intelligence_cache:
-            intel = fused_intelligence_cache.get('intelligence', {})
-            intel_summary = f"""
-            CURRENT SYSTEM TRUTH (MATH COMPUTED):
-            - Macro Pattern: {intel.get('macro_architecture', {}).get('pattern')}
-            - Dead/Phantom Files: {intel.get('dead_code', [])[:10]} (Total: {len(intel.get('dead_code', []))})
-            - Bottlenecks: {[b[0] for b in intel.get('bottlenecks', [])]}
-            """
-
+        # Define the exact tool schema for Groq
         tools = [
             {
                 "type": "function",
                 "function": {
+                    "name": "get_system_intelligence",
+                    "description": "Use this FIRST for any questions about system health, dead files, architecture patterns, or general bottlenecks."
+                }
+            },
+            {
+                "type": "function",
+                "function": {
                     "name": "get_impact",
-                    "description": "REQUIRED for 'what breaks' questions. Returns mathematical blast radius.",
-                    "parameters": {"type": "object", "properties": {"filename": {"type": "string"}}, "required": ["filename"]}
+                    "description": "Calculates downstream dependencies and risks of modifying/deleting a specific file.",
+                    "parameters": {
+                        "type": "object", 
+                        "properties": {"filename": {"type": "string", "description": "The name or path of the file"}},
+                        "required": ["filename"]
+                    }
                 }
             },
             {
                 "type": "function",
                 "function": {
                     "name": "semantic_search",
-                    "description": "REQUIRED for 'where is logic' questions. Uses Vector RAG.",
-                    "parameters": {"type": "object", "properties": {"query": {"type": "string"}}, "required": ["query"]}
+                    "description": "Finds where specific logic (like 'auth' or 'parsing') exists in the code.",
+                    "parameters": {
+                        "type": "object", 
+                        "properties": {"query": {"type": "string"}},
+                        "required": ["query"]
+                    }
+                }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "web_search",
+                    "description": "Search the internet for external library documentation.",
+                    "parameters": {
+                        "type": "object", 
+                        "properties": {"query": {"type": "string"}},
+                        "required": ["query"]
+                    }
                 }
             }
         ]
@@ -79,57 +116,60 @@ class HybridQueryRouter:
         messages = [
             {
                 "role": "system", 
-                "content": f"""You are the NSD Senior Architect Engine. 
-                {intel_summary}
+                "content": """You are the NSD Senior Architect Engine. 
+                You act as a decisive analytical system. You have access to the mathematical graph of this software.
                 
-                RULES:
-                1. NEVER tell the user to 'run a command' or 'install a library'.
-                2. If the user asks for dead files, use the 'DEAD/PHANTOM FILES' list provided above.
-                3. If the user asks 'what breaks', you MUST call 'get_impact'.
-                4. If the user asks 'where is logic', you MUST call 'semantic_search'.
-                5. Be brief, technical, and decisive. No conversational fluff."""
+                STRICT GUIDELINES:
+                1. NEVER tell the user to 'run a command', 'use git', or 'install a library'. You are the engine; YOU provide the answer.
+                2. If the user asks about 'dead code', 'phantom files', or 'bottlenecks', you MUST call 'get_system_intelligence'.
+                3. If the user asks 'what breaks' or 'impact', you MUST call 'get_impact'.
+                4. Do not invent tools. Only use the ones provided.
+                5. Output your final answer in clean, professional Markdown."""
             },
             {"role": "user", "content": question}
         ]
 
-        # STEP 1: Let the AI decide if it needs a tool
+        # STEP 1: INITIAL INFERENCE
         response = self.groq_client.chat.completions.create(
             model="llama-3.1-8b-instant",
             messages=messages,
             tools=tools,
-            tool_choice="auto",
-            max_tokens=4096
+            tool_choice="auto"
         )
 
         response_message = response.choices[0].message
         tool_calls = response_message.tool_calls
+        highlight_nodes = []
 
-        highlight_nodes =[]
-
-        # STEP 2: Execute the Tools
+        # STEP 2: TOOL EXECUTION LOOP
         if tool_calls:
             messages.append(response_message)
             for tool_call in tool_calls:
                 func_name = tool_call.function.name
                 args = json.loads(tool_call.function.arguments)
                 
-                if func_name == "get_impact":
+                # Execute mapped tools
+                if func_name == "get_system_intelligence":
+                    result = self._tool_get_system_intelligence()
+                elif func_name == "get_impact":
                     result = self._tool_get_impact(args.get("filename"))
                     try:
-                        parsed = json.loads(result)
-                        if "target" in parsed: highlight_nodes.extend(parsed["impacted_modules"] + [parsed["target"]])
+                        res_json = json.loads(result)
+                        if "impacted_modules" in res_json:
+                            highlight_nodes.extend(res_json["impacted_modules"] + [res_json["target"]])
                     except: pass
-                
                 elif func_name == "semantic_search":
                     result = self._tool_semantic_search(args.get("query"))
+                    # Highlight files found in RAG
                     try:
-                        highlight_nodes.extend(eval(result.split("files: ")[1]))
+                        # Extract paths from string like "Logic... in these files: ['path1', 'path2']"
+                        paths = eval(result.split(": ")[1])
+                        highlight_nodes.extend(paths)
                     except: pass
-                
                 elif func_name == "web_search":
                     result = self._tool_web_search(args.get("query"))
                 else:
-                    result = "Unknown tool."
+                    result = f"Error: Tool '{func_name}' does not exist."
 
                 messages.append({
                     "tool_call_id": tool_call.id,
@@ -138,13 +178,12 @@ class HybridQueryRouter:
                     "content": result
                 })
 
-            # STEP 3: Generate Final Answer based on Tool output
+            # STEP 3: FINAL SYNTHESIS
             final_response = self.groq_client.chat.completions.create(
                 model="llama-3.1-8b-instant",
-                messages=messages,
-                max_tokens=4096
+                messages=messages
             )
-            return {"answer": final_response.choices[0].message.content, "highlight_nodes": highlight_nodes}
+            return {"answer": final_response.choices[0].message.content, "highlight_nodes": list(set(highlight_nodes))}
 
-        # If no tools were needed
-        return {"answer": response_message.content, "highlight_nodes":[]}
+        # Fallback if no tool was called
+        return {"answer": response_message.content, "highlight_nodes": []}
